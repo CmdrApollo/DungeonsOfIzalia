@@ -12,6 +12,10 @@ from items import *
 
 TITLE = json.load(open('title.json', encoding='utf-8'))
 
+# TEST
+# TEST 2
+# TEST 3
+
 PLAYER_CLASS_COLORS = {
     Class.FIGHTER   : C.RED,
     Class.MAGE      : C.BLUE,
