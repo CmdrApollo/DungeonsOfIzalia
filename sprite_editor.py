@@ -41,6 +41,8 @@ class Editor(PyneEngine):
 
         self.color = C.WHITE
     
+        self.merchants = []
+
     def OnUpdate(self, delta):
         if self.MousePressed(LMB):
             self.selected.x, self.selected.y = self.MousePos()
@@ -87,6 +89,11 @@ class Editor(PyneEngine):
 
                         self.sprite[y][x].symbol = symbol
                         self.sprite[y][x].fg = fg
+            elif self.KeyPressed(K_m):
+                mx, my = self.MousePos()
+                mx, my = int(mx), int(my)
+
+                self.merchants.append((mx, my))
 
         return True
     
@@ -94,6 +101,9 @@ class Editor(PyneEngine):
         for x in range(self.TerminalWidth()):
             for y in range(self.TerminalHeight()):
                 self.DrawChar(self.sprite[y][x].symbol, (self.sprite[y][x].fg, C.DARK_GRAY if self.selected.collidepoint(x, y) else C.BLACK), x, y)
+
+        for merchant in self.merchants:
+            self.DrawChar('@', (C.CYAN, C.BLACK), merchant[0], merchant[1])
 
         mx, my = self.MousePos()
         self.DrawText(f"{int(mx)},{int(my)}", (C.WHITE, C.BLACK), 0, 0)

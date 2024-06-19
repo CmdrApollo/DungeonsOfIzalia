@@ -20,6 +20,9 @@ class MenuAction:
     BUY = 2
     SELL = 3
 
+class Action:
+    TALK = 0
+
 class DamageType:
     SLASH = 0
     CRUSH = 1

@@ -1243,5 +1243,7 @@
 			"#ffffff",
 			"#ffffff"
 		]
-	]
+	],
+	"is_map": false,
+	"npcs": []
 }

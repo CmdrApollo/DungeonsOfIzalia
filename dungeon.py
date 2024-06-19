@@ -124,7 +124,9 @@ class Dungeon:
                             Race.ELF,
                             Race.ORC
                         ]), Class.BATTLEMAGE, room.x + random.randint(1, room.w - 2), room.y + random.randint(1, room.h - 2), NPCType.MERCHANT, self.game))
-                        col = C.CYAN
+                        self.floors[i].npcs[-1].inventory = self.game.GenerateMerchantInventory()
+                        self.floors[i].npcs[-1].money = 50 + random.randint(0, 5) * 5
+                        col = C.DARK_CYAN
                     case RoomType.TREASURE:
                         col = C.YELLOW
                     case RoomType.MINIBOSS:

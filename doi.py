@@ -57,6 +57,14 @@ class Game(PyneEngine):
     def InDungeon(self):
         return self.current_map == self.dungeons[self.current_dungeon].floors[self.dungeons[self.current_dungeon].current_floor]
 
+    def GenerateMerchantInventory(self):
+        return {
+            "Bronze Sword": 3,
+            "S. Healing Potion": 5,
+            "Bronze Mace": 1,
+            "Steel Sword": 1,
+        }
+
     def OnConstruct(self):
         
         # Linking races to their stat-blocks
@@ -188,9 +196,10 @@ class Game(PyneEngine):
 
         self.menu = None
 
+        self.action = None
         self.menu_action = None
         
-        self.merchant = self.dungeons[0].floors[0].npcs[0]
+        self.merchant = None
 
     def OnCharacterCreate(self):
         race_key_map = {
@@ -387,7 +396,10 @@ class Game(PyneEngine):
         symbols = [c[0] for c in self.collision_mask]
         colors = [c[1] for c in self.collision_mask]
 
-        char = self.CharAt(int(2 + x), int(2 + y))
+        if self.InDungeon():
+            char = self.CharAt(int(x), int(y))
+        else:
+            char = self.CharAt(int(2 + x), int(2 + y))
         return char.symbol not in symbols or char.symbol in symbols and char.fg not in colors[symbols.index(char.symbol)]
 
     # Call when we wanna advance time
@@ -517,9 +529,8 @@ class Game(PyneEngine):
                         self.scene_type = SceneType.MENU
                         self.menu = Menu.INVENTORY
 
-                    if self.KeyPressed(K_8):
-                        self.scene_type = SceneType.MENU
-                        self.menu = Menu.SHOP
+                    if self.KeyPressed(K_t):
+                        self.action = Action.TALK
 
                     if self.KeyPressed(K_x) and self.InDungeon():
                         self.dungeons[self.current_dungeon].current_floor = (self.dungeons[self.current_dungeon].current_floor + 1) % self.dungeons[self.current_dungeon]._number_floors
@@ -527,23 +538,38 @@ class Game(PyneEngine):
 
                     # Map movement code
                     moved = False
+                    direction = None
 
                     if self.KeyPressed(K_LEFT):
-                        if self.AllowMove(self.overworld_position.x - 1, self.overworld_position.y):
-                            self.overworld_position.x -= 1
-                            moved = True
+                        direction = (-1, 0)
                     elif self.KeyPressed(K_RIGHT):
-                        if self.AllowMove(self.overworld_position.x + 1, self.overworld_position.y):
-                            self.overworld_position.x += 1
-                            moved = True
+                        direction = (1, 0)
                     elif self.KeyPressed(K_UP):
-                        if self.AllowMove(self.overworld_position.x, self.overworld_position.y - 1):
-                            self.overworld_position.y -= 1
-                            moved = True
+                        direction = (0, -1)
                     elif self.KeyPressed(K_DOWN):
-                        if self.AllowMove(self.overworld_position.x , self.overworld_position.y + 1):
-                            self.overworld_position.y += 1
-                            moved = True
+                        direction = (0, 1)
+
+                    if direction:
+                        match self.action:
+                            case None:
+                                if self.AllowMove(self.overworld_position.x + direction[0], self.overworld_position.y + direction[1]):
+                                    self.overworld_position.x += direction[0]
+                                    self.overworld_position.y += direction[1]
+                                    moved = True
+                            case Action.TALK:
+                                print('talk')
+                                for npc in self.current_map.npcs:
+                                    print(npc.pos_x, npc.pos_y, *self.overworld_position.xy)
+                                    if npc.pos_x == int(self.overworld_position.x + direction[0]) and npc.pos_y == int(self.overworld_position.y + direction[1]):
+                                        print('npc found')
+                                        match npc.type:
+                                            case NPCType.MERCHANT:
+                                                print('merchant found')
+                                                self.scene_type = SceneType.MENU
+                                                self.menu = Menu.SHOP
+                                                self.merchant = npc
+                                        
+                        self.action = None
 
                     # If we move on the overworld, advance time
                     if moved and self.current_map == self.overworld_map:
@@ -797,7 +823,10 @@ class Game(PyneEngine):
                         self.DrawText(t := "To: " + self.current_map.triggers[trigger_positions.index(overworld_pos)].to_map.name, self.from_fg(C.WHITE), self.TerminalWidth() - 1 - len(t), self.TerminalHeight() - 4)
 
                 # Draw the player as an '@'
-                self.DrawChar('@', (PLAYER_CLASS_COLORS[self.player_party.characters[0].char_class], self.background_color), int(self.overworld_position.x + 2), int(self.overworld_position.y + 2))
+                if self.InDungeon():
+                    self.DrawChar('@', (PLAYER_CLASS_COLORS[self.player_party.characters[0].char_class], self.background_color), int(self.overworld_position.x), int(self.overworld_position.y))
+                else:
+                    self.DrawChar('@', (PLAYER_CLASS_COLORS[self.player_party.characters[0].char_class], self.background_color), int(self.overworld_position.x + 2), int(self.overworld_position.y + 2))
 
             # Draw battles
             case SceneType.BATTLE:
@@ -831,8 +860,9 @@ class Game(PyneEngine):
 
                 self.DrawHLine(self.from_fg(C.WHITE), 0, self.TerminalHeight() - 3, self.TerminalWidth())
 
-            # TODO: implement menu
+            # TODO: implement other menus
             case SceneType.MENU:
+                self.DrawHLine(self.from_fg(C.WHITE), 0, self.TerminalHeight() - 3, self.TerminalWidth())
                 match self.menu:
                     case Menu.INVENTORY:
                         keys = [chr(ord('a') + i) for i in range(26)] + [chr(ord('A') + i) for i in range(26)]
@@ -853,14 +883,17 @@ class Game(PyneEngine):
                         tposx = self.TerminalWidth() // 2 + 1
                         self.DrawText("Merchant Items", self.from_fg(C.WHITE), tposx, 4)
 
+                        self.DrawText(f"Party Gold: {self.player_character.money}", self.from_fg(C.WHITE), 1, self.TerminalHeight() - 4)
+                        self.DrawText(f"Merchant Gold: {self.merchant.money}", self.from_fg(C.WHITE), tposx, self.TerminalHeight() - 4)
+
                         y = 6
                         for item in self.player_character.inventory:
-                            self.DrawText(f"[{keys.pop(0)}] {item} x{self.player_character.inventory[item]}", self.from_fg(C.WHITE), 1, y)
+                            self.DrawText(f"[{keys.pop(0)}] {item} x{self.player_character.inventory[item]} ({ITEM_DICTIONARY[item].price}gp)", self.from_fg(C.WHITE), 1, y)
                             y += 1
 
                         y = 6
                         for item in self.merchant.inventory:
-                            self.DrawText(f"[{keys.pop(0)}] {item} x{self.merchant.inventory[item]}", self.from_fg(C.WHITE), tposx, y)
+                            self.DrawText(f"[{keys.pop(0)}] {item} x{self.merchant.inventory[item]} ({ITEM_DICTIONARY[item].price}gp)", self.from_fg(C.WHITE), tposx, y)
                             y += 1
                     case _:
                         print("unimplemented menu draw")
