@@ -111,3 +111,15 @@ class Party:
 
                 if selected_character == self.characters[i]:
                     engine.DrawChar('*', (selected_color if selected_color else engine.Color.YELLOW, engine.background_color), self.show_pos[0] - i * 5 * (2 * self.move_left - 1), self.show_pos[1] - 3)
+
+class NPCType:
+    MERCHANT = 0
+
+class NPC(Character):
+    def __init__(self, name, race, char_class, x, y, npc_type, game, level=1):
+        super().__init__(name, race, char_class, game, level)
+        self.pos_x = x
+        self.pos_y = y
+
+        self.type = npc_type
+        self.color = [C.CYAN][self.type]

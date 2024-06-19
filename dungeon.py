@@ -41,7 +41,7 @@ class Dungeon:
         self.exit_point_x = 10
         self.exit_point_y = 10
 
-        self.floors = [Map(self.name, None, [Trigger(self.game.overworld_map, self.exit_point_x, self.exit_point_y, x, y)] if i == 0 else [], game) for i in range(self._number_floors)]
+        self.floors = [Map(self.name, None, [Trigger(self.game.overworld_map, self.exit_point_x, self.exit_point_y, x, y)] if i == 0 else [], [], game) for i in range(self._number_floors)]
         self.current_floor = 0
 
         self.x = x
@@ -64,8 +64,8 @@ class Dungeon:
             n_rooms = self._number_rooms_per_floor + random.randint(-1, 1)
             
             room_types = [
-                RoomType.ENTER, RoomType.EXIT, RoomType.MINIBOSS
-            ] + [ self.RandomRoom() for _ in range(n_rooms - 3)]
+                RoomType.ENTER, RoomType.EXIT, RoomType.MINIBOSS, RoomType.SHOP
+            ] + [ self.RandomRoom() for _ in range(n_rooms - 4)]
 
             visited = []
 
@@ -117,6 +117,13 @@ class Dungeon:
                     case RoomType.REGULAR:
                         col = C.WHITE
                     case RoomType.SHOP:
+                        self.floors[i].npcs.append(NPC("Merchant", random.choice([
+                            Race.HUMAN,
+                            Race.DWARF,
+                            Race.GNOME,
+                            Race.ELF,
+                            Race.ORC
+                        ]), Class.BATTLEMAGE, room.x + random.randint(1, room.w - 2), room.y + random.randint(1, room.h - 2), NPCType.MERCHANT, self.game))
                         col = C.CYAN
                     case RoomType.TREASURE:
                         col = C.YELLOW

@@ -10,11 +10,15 @@ class StatChange:
 
 class Menu:
     INVENTORY = 0
-    SYSTEM = 1
+    SHOP = 1
+    SYSTEM = 2
 
 class MenuAction:
     USE = 0
     DROP = 1
+    
+    BUY = 2
+    SELL = 3
 
 class DamageType:
     SLASH = 0

@@ -116,14 +116,14 @@ class Game(PyneEngine):
         ]
 
         # Initializing the over-arching overworld map, setting it to current
-        self.overworld_map = Map("The Continent of Ahlun", world, [], self)
+        self.overworld_map = Map("The Continent of Ahlun", world, [], [], self)
 
         self.current_map = self.overworld_map
 
         # City name -> Map dictionary
         self.cities = {
-            'Semar': Map("The Village of Semar", semar, [Trigger(self.overworld_map, 0, 10, 43, 15)], self),
-            'Isat' : Map("The Village of Isat" , isat , [Trigger(self.overworld_map, 0, 10, 33, 13)], self)
+            'Semar': Map("The Village of Semar", semar, [Trigger(self.overworld_map, 0, 10, 43, 15)], [], self),
+            'Isat' : Map("The Village of Isat" , isat , [Trigger(self.overworld_map, 0, 10, 33, 13)], [], self)
         }
 
         self.dungeons = [
@@ -189,6 +189,8 @@ class Game(PyneEngine):
         self.menu = None
 
         self.menu_action = None
+        
+        self.merchant = self.dungeons[0].floors[0].npcs[0]
 
     def OnCharacterCreate(self):
         race_key_map = {
@@ -342,7 +344,7 @@ class Game(PyneEngine):
                 self.DrawTextLines([
                     "Pick your Name:",
                     "",
-                    self.player_character.name
+                    self.player_character.name + '_'
                 ], self.from_fg(C.WHITE), 1, 1)
 
     # Call when we start a new battle!
@@ -515,6 +517,10 @@ class Game(PyneEngine):
                         self.scene_type = SceneType.MENU
                         self.menu = Menu.INVENTORY
 
+                    if self.KeyPressed(K_8):
+                        self.scene_type = SceneType.MENU
+                        self.menu = Menu.SHOP
+
                     if self.KeyPressed(K_x) and self.InDungeon():
                         self.dungeons[self.current_dungeon].current_floor = (self.dungeons[self.current_dungeon].current_floor + 1) % self.dungeons[self.current_dungeon]._number_floors
                         self.current_map = self.dungeons[self.current_dungeon].floors[self.dungeons[self.current_dungeon].current_floor]
@@ -570,6 +576,9 @@ class Game(PyneEngine):
                                     gained_loot.update({ loot.name: item_count + 1 })
                                     self.player_character.GiveItem(loot)
                             
+                            money_gained = len(self.enemy_party.characters) * random.randint(1, 3) + random.randint(1, 10)
+                            self.dialogue.append(f"Party gained {money_gained}gp!")
+                            self.player_character.money += money_gained
                             for k, v in list(gained_loot.items()):
                                 self.dialogue.append(f"Party gained {k} x{v}!")
 
@@ -699,7 +708,15 @@ class Game(PyneEngine):
                                             self.dialogue.append(f"Dropped the {item}")
                                         
                                         self.menu_action = None
-                                                    
+                        case Menu.SHOP:
+                            if self.KeyPressed(K_z):
+                                self.scene_type = SceneType.OVERWORLD
+                                self.menu_action = None
+
+                            if self.menu_action == MenuAction.BUY:
+                                pass
+                            else:
+                                pass           
                         case _:
                             print("unimplemented menu update")
         else:
@@ -826,6 +843,24 @@ class Game(PyneEngine):
                         y = 4
                         for item in self.player_character.inventory:
                             self.DrawText(f"[{keys.pop(0)}] {item} x{self.player_character.inventory[item]}", self.from_fg(C.WHITE), 1, y)
+                            y += 1
+                    case Menu.SHOP:
+                        keys = [chr(ord('a') + i) for i in range(26)] + [chr(ord('A') + i) for i in range(26)]
+                        
+                        self.DrawText("Shop " + ("(Choose Action)" if self.menu_action == None else "(Choose Item)"), self.from_fg(C.WHITE), 1, 1)
+                        self.DrawText("[b] Buy   [s] Sell  [z] Close Shop", self.from_fg(C.WHITE), 1, 2)
+                        self.DrawText("Party Items", self.from_fg(C.WHITE), 1, 4)
+                        tposx = self.TerminalWidth() // 2 + 1
+                        self.DrawText("Merchant Items", self.from_fg(C.WHITE), tposx, 4)
+
+                        y = 6
+                        for item in self.player_character.inventory:
+                            self.DrawText(f"[{keys.pop(0)}] {item} x{self.player_character.inventory[item]}", self.from_fg(C.WHITE), 1, y)
+                            y += 1
+
+                        y = 6
+                        for item in self.merchant.inventory:
+                            self.DrawText(f"[{keys.pop(0)}] {item} x{self.merchant.inventory[item]}", self.from_fg(C.WHITE), tposx, y)
                             y += 1
                     case _:
                         print("unimplemented menu draw")
